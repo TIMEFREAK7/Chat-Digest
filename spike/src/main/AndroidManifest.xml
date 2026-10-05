@@ -10,6 +10,7 @@
 
     <application
         android:allowBackup="false"
+        android:icon="@android:drawable/sym_def_app_icon"
         android:label="Digest Spike"
         android:theme="@android:style/Theme.DeviceDefault.DayNight">
 

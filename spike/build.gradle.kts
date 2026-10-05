@@ -25,6 +25,10 @@ android {
             storePassword = System.getenv("KEYSTORE_PASSWORD")
             keyAlias = System.getenv("KEY_ALIAS")
             keyPassword = System.getenv("KEY_PASSWORD")
+            // v1+v3 alongside v2: some OEM installers (ColorOS/OxygenOS) reject v2-only APKs.
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 
