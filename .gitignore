@@ -147,3 +147,25 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# --- Chat Digest ---
+# Android / Gradle
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+
+# Signing keys never enter the repo
+*.jks
+*.keystore
+keystore*/
+
+# Private chat data: real exports, golden set, capture logs, reports, models
+fixtures/
+golden/
+WhatsApp Chat*
+*.jsonl
+report*.txt
+*.litertlm
