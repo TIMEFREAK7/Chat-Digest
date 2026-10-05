@@ -13,6 +13,7 @@ android {
         targetSdk = 36
         versionCode = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
         versionName = "0.0.$versionCode-spike"
+        ndk { abiFilters += "arm64-v8a" } // both target phones; x86_64 is emulator-only and doubles the APK
     }
 
     // One fixed key so every CI build installs over the previous one. Falls back to the
@@ -33,6 +34,9 @@ android {
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
+
+    // Compress the 30 MB LiteRT-LM .so in the APK (it is extracted once at install).
+    packaging { jniLibs { useLegacyPackaging = true } }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
