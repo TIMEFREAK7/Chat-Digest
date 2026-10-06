@@ -12,6 +12,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.view.WindowInsets
 import chatdigest.core.CaptureDiff
 import chatdigest.core.ExportMessage
 import chatdigest.core.ExportParser
@@ -28,6 +29,7 @@ import java.util.zip.ZipInputStream
 class MainActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private lateinit var out: TextView
+    private lateinit var scroll: ScrollView
     private lateinit var names: EditText
     private lateinit var modelBtn: Button
     private lateinit var backendBtn: Button
@@ -45,7 +47,9 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(32, 48, 32, 32) }
+        actionBar?.hide()
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(TextView(this).apply { text = "Digest Spike"; textSize = 22f; setPadding(0, 0, 0, 24) })
         names = EditText(this).apply {
             hint = "Your name in exports, then nicknames (comma-separated)"
             inputType = InputType.TYPE_CLASS_TEXT
@@ -73,7 +77,14 @@ class MainActivity : Activity() {
 
         out = TextView(this).apply { setTextIsSelectable(true); typeface = android.graphics.Typeface.MONOSPACE; textSize = 11f }
         col.addView(out)
-        setContentView(ScrollView(this).apply { addView(col) })
+        scroll = ScrollView(this).apply { addView(col) }
+        // targetSdk 35+ draws edge-to-edge: keep content clear of the status and navigation bars.
+        scroll.setOnApplyWindowInsetsListener { v, insets ->
+            val b = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout() or WindowInsets.Type.ime())
+            v.setPadding(b.left + 32, b.top + 32, b.right + 32, b.bottom + 32)
+            insets
+        }
+        setContentView(scroll)
         refreshButtons()
         Heartbeat.schedule(this)
     }
@@ -163,7 +174,9 @@ class MainActivity : Activity() {
 
     private fun diff(uri: Uri): String {
         val (chat, msgs) = readExport(uri)
-        val own = readerNames.firstOrNull() ?: return "Enter your name (as it appears in the export) first."
+        val own = readerNames.firstOrNull() ?: return "Enter your name (as it appears in the export) in the box at the top first.".also {
+            runOnUiThread { scroll.fullScroll(ScrollView.FOCUS_UP); names.requestFocus() }
+        }
         return CaptureDiff.diff(msgs, chat, own, CaptureLog.read(this), zone).toText(zone)
     }
 
@@ -202,7 +215,7 @@ class MainActivity : Activity() {
 
     private fun print(s: String) {
         reportFile.appendText(s + "\n")
-        runOnUiThread { out.append(s + "\n") }
+        runOnUiThread { out.append(s + "\n"); scroll.post { scroll.fullScroll(ScrollView.FOCUS_DOWN) } }
     }
 
     companion object {
