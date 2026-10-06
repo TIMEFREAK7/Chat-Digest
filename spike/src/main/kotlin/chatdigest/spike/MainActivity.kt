@@ -155,6 +155,10 @@ class MainActivity : Activity() {
         }
         val chat = name.substringAfter("WhatsApp Chat with ", name).substringBeforeLast('.').substringBefore(" (")
         val msgs = try { ExportParser.parse(lines, dayFirst = true) } catch (e: DateTimeException) { ExportParser.parse(lines, dayFirst = false) }
+        require(msgs.isNotEmpty()) {
+            "\"$name\" is not a WhatsApp export (0 messages parsed). First lines:\n" +
+                lines.filter { it.isNotBlank() }.take(3).joinToString("\n") { "   " + it.take(100) }
+        }
         return chat to msgs
     }
 

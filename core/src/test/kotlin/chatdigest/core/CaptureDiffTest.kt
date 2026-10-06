@@ -72,4 +72,12 @@ class CaptureDiffTest {
         assertEquals(4, r.gateMisses)
         assertEquals(listOf("long message that is longer…", "a later message"), r.extraCaptured.map { it.text })
     }
+
+    @Test fun emptyWindowIsNoDataNotPass() {
+        val old = ExportParser.parse(listOf("01/10/2026, 10:00 - Aditya: before the capture started"))
+        val r = CaptureDiff.diff(old, "Other chat", "Me", events, zone)
+        assertEquals(false, r.chatSeen)
+        val text = r.toText(zone)
+        kotlin.test.assertTrue("NO DATA" in text && "pass" !in text, text)
+    }
 }

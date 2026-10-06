@@ -38,13 +38,23 @@ data class DiffReport(
     val misses: List<Miss>,
     val extraCaptured: List<CapturedMsg>,
     val titlesSeen: Set<String>,
+    val exportTotal: Int,
+    val exportFirst: LocalDateTime?,
+    val exportLast: LocalDateTime?,
+    val chatSeen: Boolean,
 ) {
     val gateMisses get() = misses.count { it.cause.countsAgainstGate }
 
     fun toText(zone: ZoneId): String = buildString {
         appendLine("== Capture diff: $chat ==")
-        appendLine("window $windowStart → $windowEnd")
+        appendLine("export: $exportTotal msgs, $exportFirst → $exportLast")
+        appendLine("capture window $windowStart → $windowEnd")
         appendLine("export msgs in window from others: $considered, matched: $matched, own skipped: $skippedOwn, deleted skipped: $skippedDeleted")
+        if (!chatSeen) appendLine("Chat never appeared in capture under this name. Titles seen: ${titlesSeen.sorted()}")
+        if (considered == 0) {
+            appendLine("NO DATA: nothing from others in this chat during the capture window — pick a chat that got messages since $windowStart.")
+            return@buildString
+        }
         appendLine("GATE MISSES: $gateMisses ${if (gateMisses == 0) "(pass)" else "(FAIL)"}")
         MissCause.entries.forEach { c ->
             val ms = misses.filter { it.cause == c }
@@ -56,7 +66,6 @@ data class DiffReport(
             appendLine("-- captured but not in export (edits? sent after export?): ${extraCaptured.size}")
             extraCaptured.forEach { appendLine("   ${LocalDateTime.ofInstant(Instant.ofEpochMilli(it.time), zone)} ${it.sender}: ${it.text.take(80)}") }
         }
-        if (matched == 0) appendLine("No match at all. Chat titles seen in capture: ${titlesSeen.sorted()}")
     }
 }
 
@@ -115,7 +124,9 @@ object CaptureDiff {
             LocalDateTime.ofInstant(Instant.ofEpochMilli(start), zone),
             LocalDateTime.ofInstant(Instant.ofEpochMilli(end), zone),
             considered.size, matched, own.size, deleted.size, misses, extra,
-            evs.mapNotNull { it.chat?.let(::chatKey) }.toSet(),
+            evs.mapNotNull { it.chat?.let(::chatKey) }.filter { it.isNotEmpty() }.toSet(),
+            export.size, export.firstOrNull()?.time, export.lastOrNull()?.time,
+            chatEvents.isNotEmpty(),
         )
     }
 
