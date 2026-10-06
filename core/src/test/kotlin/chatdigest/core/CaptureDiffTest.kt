@@ -80,4 +80,14 @@ class CaptureDiffTest {
         val text = r.toText(zone)
         kotlin.test.assertTrue("NO DATA" in text && "pass" !in text, text)
     }
+
+    @Test fun stickerNotificationMatchesMediaOmitted() {
+        val ex = ExportParser.parse(listOf("05/10/2026, 10:30 - Aditya: <Media omitted>"))
+        val evs = listOf(
+            CaptureEvent(ms(10, 0), "connect"),
+            CaptureEvent(ms(10, 30, 25), "post", "Site", listOf(CapturedMsg(ms(10, 30, 20), "Aditya", "💟 Sent a sticker"))),
+            CaptureEvent(ms(10, 45), "heartbeat"),
+        )
+        assertEquals(1, CaptureDiff.diff(ex, "Site", "Me", evs, zone).matched)
+    }
 }

@@ -110,7 +110,7 @@ object CaptureDiff {
             val t = ms(m.time)
             val near = captured.filter { it.time in (t - MATCH_BEFORE_MS)..(t + MATCH_AFTER_MS) }
             val hit = near.firstOrNull { norm(it.text) == norm(m.text) }
-                ?: if (m.isMedia) near.firstOrNull { c -> MEDIA.any { c.text.contains(it) } } else null
+                ?: if (m.isMedia) near.firstOrNull { c -> MEDIA.any { c.text.contains(it, ignoreCase = true) } } else null
             if (hit != null) {
                 matched++
                 captured.remove(hit)
