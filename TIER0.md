@@ -52,3 +52,13 @@ How much of this ships depends on Tier 0's numbers. If overflow and listener-dow
 
 ## Time lexicon matching rule
 A message token shorter than 4 characters matches only an explicit list of variants (`kal`, `kaal`, `kl`; `aaj`, `aj`; `lac`; …). Tokens of 4+ characters match after normalization (doubled vowels collapsed, dh→d, w→v, z→j) at edit distance ≤ 1, except words on a short English blocklist (`same`, `side`, `sale`, `rate`, `pune`, …). The lexicon report lists every match as `token≈entry`, so wrong fuzzy hits are visible. Feed misses and misfires back into `TimeLexicon.kt`.
+
+## Decisions carried into Tier 1
+- **Reset on read:** only removal reason 8 (WhatsApp cancelled the notification because the chat was opened) marks a chat read. A swipe (2), clear-all (3) or group-summary cancel (12) does not.
+- **In-app model download (decided 7 Oct 2026):** the app may hold `INTERNET`, used only to download the model. Message data still never leaves the phone. Guardrails:
+  1. All network code lives in one file (`ModelDownloader.kt`). CI fails if `java.net`, `HttpURLConnection`, OkHttp or any socket API appears anywhere else.
+  2. GET only, to a hard-coded allowlist (`huggingface.co` and its CDN redirect host). No request body, and no headers beyond what the HTTP client adds itself.
+  3. The SHA-256 of each model version is pinned in code. A mismatch deletes the file.
+  4. Download starts only when you tap it, on Wi-Fi by default. It resumes after interruption and shows progress and size before starting.
+  5. The privacy screen states it: "Network used only to download <model> from huggingface.co on <date>. No other traffic."
+  6. Importing a file by hand stays available as a fallback.
