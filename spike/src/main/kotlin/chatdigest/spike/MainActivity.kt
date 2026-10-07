@@ -65,6 +65,9 @@ class MainActivity : Activity() {
         button("3. Status") { status() }
         button("4. Capture stats") { bg { CaptureDiff.stats(CaptureLog.read(this), zone) } }
         button("5. Diff export(s) vs capture…") { pick(REQ_DIFF) }
+        // The app has no INTERNET permission, so the browser does the download; button 6 imports it.
+        button("6a. Download Gemma 4 E2B (2.6 GB) in browser") { browse(MODEL_URL.format("E2B")) }
+        button("6b. Download Gemma 4 E4B (3.7 GB) in browser") { browse(MODEL_URL.format("E4B")) }
         button("6. Import model file…") { pick(REQ_MODEL, multiple = false) }
         modelBtn = button("") { modelIdx++; refreshButtons() }
         backendBtn = button("") { gpu = !gpu; refreshButtons() }
@@ -111,6 +114,8 @@ class MainActivity : Activity() {
             models.forEach { appendLine("model ${it.name} ${it.length() / 1_000_000} MB") }
         },
     )
+
+    private fun browse(url: String) = startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 
     // --- file plumbing ---
 
@@ -223,6 +228,7 @@ class MainActivity : Activity() {
     }
 
     companion object {
+        const val MODEL_URL = "https://huggingface.co/litert-community/gemma-4-%1\$s-it-litert-lm/resolve/main/gemma-4-%1\$s-it.litertlm?download=true"
         const val WINDOW = 50 // matches the Tier 0 "50-message summary" benchmark
         const val REQ_DIFF = 1
         const val REQ_MODEL = 2

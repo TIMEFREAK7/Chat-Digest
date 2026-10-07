@@ -6,6 +6,9 @@ Throwaway app (`spike/`, label **Digest Spike**) plus the parts that survive int
 Every push runs `.github/workflows/build.yml`: unit tests → signed release APK → artifact `digest-spike-<run>`. Download it from the Actions run and sideload it on both phones.
 Signing needs four repo secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`. If they're missing, CI falls back to the debug key and prints a warning.
 
+## Gate scope (decided 7 Oct 2026)
+The go/no-go covers the **OnePlus 13 only**. The Oppo Find X10 Pro Max (Dimensity 9600 Pro, Android 17) is **unvalidated**. Before the app is used there, it needs its own Tier 0 check: 24 h of capture and the model benchmark.
+
 ## Run protocol (each phone)
 1. Install → enter **your name exactly as it appears in exports**, then nicknames, comma-separated.
 2. **1. Grant notification access.** Leave the battery exemption **off** for the first 24 h.
@@ -13,7 +16,7 @@ Signing needs four repo secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_AL
 4. At 24 h: **2. Battery exemption** on, and on OxygenOS/ColorOS also allow auto-launch and background activity. Run another 24 h.
 5. **Save capture log…** and **4. Capture stats.**
 6. Export 3–5 active chats (WhatsApp → chat → ⋮ → More → Export chat → **Without media**) → **5. Diff export(s) vs capture.**
-7. Copy `gemma-4-E2B-it.litertlm` (and E4B) to the phone → **6. Import model.** Then **7. Summarize** your 6 golden-set exports, on GPU and then on CPU.
+7. **6a / 6b** open the model download in the browser (Hugging Face `litert-community`, Apache-2.0, no login). When it finishes → **6. Import model**, then delete the copy in Downloads. Then **7. Summarize** your 6 golden-set exports, on GPU and then on CPU.
 8. **8. Lexicon report** on the same 6 exports.
 9. **Save report…** and send me `report.txt`, plus your hand scores. Do not commit it.
 
