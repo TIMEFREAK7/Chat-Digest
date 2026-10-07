@@ -51,7 +51,7 @@ Your own messages and deleted messages are skipped. **Gate:** zero misses of any
 How much of this ships depends on Tier 0's numbers. If overflow and listener-down both measure zero, Tier 1 only needs the gap header. A miss that is common and can't be explained is a no-go.
 
 ## Time lexicon matching rule
-A message token shorter than 4 characters matches only an explicit list of variants (`kal`, `kaal`, `kl`; `aaj`, `aj`; `lac`; …). Tokens of 4+ characters match after normalization (doubled vowels collapsed, dh→d, w→v, z→j) at edit distance ≤ 1, except words on a short English blocklist (`same`, `side`, `sale`, `rate`, `pune`, …). The lexicon report lists every match as `token≈entry`, so wrong fuzzy hits are visible. Feed misses and misfires back into `TimeLexicon.kt`.
+A token matches only an explicitly listed spelling of an entry, after normalization (lowercase, doubled vowels collapsed, dh→d, w→v, z→j). There is no edit-distance matching. The earlier rule (fuzzy match for 4+ characters) produced about 1,440 fuzzy hits on 7 Oct real chats, and about 88% of them were wrong: need→dedh, kiti→koti, adhi→adhai, baat→raat, sadhya→sandhya. Add new spellings to `TimeLexicon.kt` from the lexicon report's `token≈entry` lines.
 
 ## Decisions carried into Tier 1
 - **Reset on read:** only removal reason 8 (WhatsApp cancelled the notification because the chat was opened) marks a chat read. A swipe (2), clear-all (3) or group-summary cancel (12) does not.

@@ -18,7 +18,7 @@ class TimeLexiconTest {
         assertTrue(r.warnings.isEmpty())
     }
 
-    @Test fun spellingVariantsFuzzyForLongTokens() {
+    @Test fun listedSpellingVariants() {
         assertEquals("Tue 6 Oct, 10:00", one("udhyaa sakaali 10 la").resolved)
         assertEquals("Tue 6 Oct, 10:00", one("udyaa sakli 10 vajta").resolved)
     }
@@ -64,6 +64,12 @@ class TimeLexiconTest {
 
     @Test fun devanagariDigits() {
         assertEquals("Tue 6 Oct, 10:00", one("udya sakali १० la").resolved)
+    }
+
+    @Test fun tier0FalsePositivesStayUnmatched() {
+        // Each of these was matched by the old edit-distance rule in real chats (7 Oct report).
+        val words = "need deep kiti koni hoti adhi baat vaat jaat sadhya sarva naii kadhich saniya madhe lach gham"
+        assertTrue(TimeLexicon.resolve("$words 5 la", monday).none { r -> r.matches.any { it.first in words.split(" ") } })
     }
 
     @Test fun plainEnglishAndBareNumbersIgnored() {

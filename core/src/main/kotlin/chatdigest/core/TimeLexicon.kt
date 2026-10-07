@@ -9,8 +9,10 @@ import java.util.Locale
  * Deterministic resolver for Hinglish / romanized-Marathi date, time and amount phrases.
  * The model copies phrases verbatim; this turns them into "phrase → Tue 6 Oct, 10:00".
  *
- * Matching rule: message tokens shorter than 4 chars match only an explicit variant list;
- * tokens of 4+ chars match after normalization with edit distance ≤ 1.
+ * Matching rule: a token matches only an explicit spelling of an entry, after normalization
+ * (lowercase, doubled vowels collapsed, dh→d, w→v, z→j). No edit-distance matching: on 7 Oct
+ * Tier 0 data it produced ~1,440 fuzzy hits of which ~88% were wrong (need→dedh, kiti→koti,
+ * adhi→adhai, baat→raat, sadhya→sandhya…). New spellings are added from the lexicon report.
  */
 object TimeLexicon {
 
@@ -20,7 +22,7 @@ object TimeLexicon {
         val resolved: String?,
         /** Ambiguities the reader must see (⚠). Empty when fully resolved. */
         val warnings: List<String>,
-        /** message token → lexicon entry, so fuzzy hits are auditable in Tier 0. */
+        /** message token → lexicon entry, so every match is auditable in the lexicon report. */
         val matches: List<Pair<String, String>>,
     ) {
         override fun toString() =
@@ -35,36 +37,37 @@ object TimeLexicon {
     private data class Mult(val factor: Long) : Cat
     private data object HourMarker : Cat
 
-    private class Entry(val canonical: String, val cat: Cat, val shortVariants: Set<String> = emptySet())
+    private class Entry(val canonical: String, val cat: Cat, vararg spellings: String) {
+        val forms = (spellings.toList() + canonical).map(::normalize).toSet()
+    }
 
     private val ENTRIES = listOf(
-        Entry("aaj", Day(0, false), setOf("aaj", "aj")),
-        Entry("kal", Day(1, true), setOf("kal", "kaal", "kl")),
-        Entry("parso", Day(2, true)),
-        Entry("parva", Day(2, true)), // ponytail: parva treated as ambiguous like parso; confirm usage in Tier 0
-        Entry("udya", Day(1, false)),
-        Entry("sakali", Period("morning")), Entry("sakal", Period("morning")), Entry("subah", Period("morning")),
-        Entry("dupari", Period("afternoon")), Entry("dopahar", Period("afternoon")),
-        Entry("sandhyakali", Period("evening")), Entry("sandhya", Period("evening")),
-        Entry("shaam", Period("evening"), setOf("sam")),
-        Entry("raatri", Period("night")), Entry("raat", Period("night")),
-        Entry("savva", Frac(0.25), setOf("sva")), Entry("sawa", Frac(0.25)),
-        Entry("saade", Frac(0.5)), Entry("saadhe", Frac(0.5)),
-        Entry("paune", Frac(-0.25)), Entry("pavne", Frac(-0.25)),
-        Entry("dedh", AbsFrac(1.5)), Entry("adich", AbsFrac(2.5)), Entry("dhaai", AbsFrac(2.5)), Entry("adhai", AbsFrac(2.5)),
-        Entry("hazaar", Mult(1_000)), Entry("hajaar", Mult(1_000)),
-        Entry("lakh", Mult(100_000), setOf("lac", "lk")),
-        Entry("crore", Mult(10_000_000), setOf("cr")), Entry("karod", Mult(10_000_000)), Entry("koti", Mult(10_000_000)),
-        Entry("la", HourMarker, setOf("la", "laa")),
-        Entry("baje", HourMarker, setOf("bje", "baj")),
-        Entry("vaje", HourMarker), Entry("vajta", HourMarker), Entry("vajata", HourMarker),
-    )
-
-    /** English words one edit away from a 4+ char entry. Grown from Tier 0 misfires. */
-    private val ENGLISH_BLOCK = setOf(
-        "same", "safe", "sale", "side", "sake", "shame", "sham", "rate", "rant", "rapt", "lack", "lake",
-        "lace", "bake", "bike", "save", "sava", "sakes", "sandy", "pause", "core", "crores", "dead", "deed",
-        "seed", "load", "lead", "subs", "pune",
+        Entry("aaj", Day(0, false), "aj"),
+        Entry("kal", Day(1, true), "kaal", "kl"),
+        Entry("parso", Day(2, true), "parson"),
+        Entry("parva", Day(2, true), "parwa"), // ponytail: treated as ambiguous like parso; confirm usage
+        Entry("udya", Day(1, false), "udyaa", "udhya", "udhyaa", "udyla"),
+        Entry("sakali", Period("morning"), "skali", "sakli", "sakaali"),
+        Entry("sakal", Period("morning"), "skal"),
+        Entry("subah", Period("morning"), "subha"),
+        Entry("dupari", Period("afternoon"), "dupar", "dupaari"),
+        Entry("dopahar", Period("afternoon"), "dopaher"),
+        Entry("sandhyakali", Period("evening"), "sandhyakal", "sandhyakaali"),
+        Entry("shaam", Period("evening"), "sham"),
+        Entry("raatri", Period("night"), "ratri", "ratree"),
+        Entry("raat", Period("night")),
+        Entry("savva", Frac(0.25), "sawa", "sava"),
+        Entry("saade", Frac(0.5), "saadhe", "sade", "sadhe"),
+        Entry("paune", Frac(-0.25), "pavne", "pone"),
+        Entry("dedh", AbsFrac(1.5), "dhed"),
+        Entry("adich", AbsFrac(2.5), "adhich", "adeech"),
+        Entry("adhai", AbsFrac(2.5), "dhaai", "dhai"),
+        Entry("hazaar", Mult(1_000), "hajaar", "hazar", "hajar"),
+        Entry("lakh", Mult(100_000), "lac", "laakh"),
+        Entry("crore", Mult(10_000_000), "cr", "karod", "koti"),
+        Entry("la", HourMarker, "laa"),
+        Entry("baje", HourMarker, "bje"),
+        Entry("vajta", HourMarker, "vaje", "vajata", "vajle"),
     )
 
     private val FUTURE_WORDS = setOf(
@@ -182,34 +185,15 @@ object TimeLexicon {
     }
 
     private fun lookup(token: String): Pair<String, Cat>? {
-        val t = token.lowercase()
-        if (t.first().isDigit()) return null
-        ENTRIES.firstOrNull { t in it.shortVariants || t == it.canonical }?.let { return it.canonical to it.cat }
-        if (t.length < 4 || t in ENGLISH_BLOCK) return null
-        val n = normalize(t)
-        return ENTRIES.filter { it.canonical.length >= 4 }
-            .map { it to editDistance(n, normalize(it.canonical)) }
-            .filter { it.second <= 1 }
-            .minByOrNull { it.second }
-            ?.let { it.first.canonical to it.first.cat }
+        if (token.first().isDigit()) return null
+        val n = normalize(token)
+        return ENTRIES.firstOrNull { n in it.forms }?.let { it.canonical to it.cat }
     }
 
     fun normalize(s: String): String {
         var t = s.lowercase().replace("dh", "d").replace("w", "v").replace("z", "j")
         t = t.replace(Regex("([aeiou])\\1+"), "$1")
         return t
-    }
-
-    fun editDistance(a: String, b: String): Int {
-        var prev = IntArray(b.length + 1) { it }
-        for (i in 1..a.length) {
-            val cur = IntArray(b.length + 1).also { it[0] = i }
-            for (j in 1..b.length) {
-                cur[j] = minOf(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1)
-            }
-            prev = cur
-        }
-        return prev[b.length]
     }
 
     fun devanagariDigitsToAscii(s: String) =

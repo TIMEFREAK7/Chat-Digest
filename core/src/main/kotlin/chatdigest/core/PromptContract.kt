@@ -4,7 +4,7 @@ import java.time.format.DateTimeFormatter
 
 /** The fixed, versioned summarization contract. Any change bumps [VERSION] and re-runs the golden set. */
 object PromptContract {
-    const val VERSION = "pc-0.1"
+    const val VERSION = "pc-0.2"
 
     val SYSTEM = """
         You summarize a burst of WhatsApp messages for one reader. Messages may mix English, Hinglish and romanized Marathi.
@@ -15,7 +15,8 @@ object PromptContract {
         4. In group chats, attribute each statement to its sender.
         5. Ignore greetings, reactions, emoji-only messages, "ok"/"👍" acknowledgements and forwarded chains unless they contain an ask or a fact.
         6. Never guess what a photo, video, voice note or deleted message contains.
-        7. Output only these sections, in this order, and omit any section that would be empty:
+        7. Write every item in English, including questions; put the original words in quotes after the English when they are not English.
+        8. Output only these sections, in this order. Leave out a section completely when it has nothing: never write "None" or an empty placeholder.
         Decisions:
         Asks / action items: (who → what → by when)
         Questions directed at me:
@@ -32,6 +33,9 @@ object PromptContract {
         val media = msgs.count { it.isMedia }
         if (media > 0) appendLine("$media media messages are not shown; write \"$media media messages not summarized\" under Other.")
         appendLine("Messages:")
-        msgs.filterNot { it.isMedia || it.isDeleted }.forEach { appendLine("[${it.time.format(TIME)}] ${it.sender}: ${it.text}") }
+        // WhatsApp wraps @mentions in invisible isolate marks (U+2068/U+2069); strip them so names stay clean.
+        msgs.filterNot { it.isMedia || it.isDeleted }.forEach {
+            appendLine("[${it.time.format(TIME)}] ${it.sender}: ${it.text.replace("\u2068", "").replace("\u2069", "")}")
+        }
     }
 }
