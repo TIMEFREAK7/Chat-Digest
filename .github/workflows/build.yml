@@ -33,12 +33,11 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew :core:test :spike:assembleRelease
 
-      - name: Refuse any network permission
+      - name: Network code only in ModelDownloader.kt
         run: |
-          AAPT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
-          "$AAPT" dump permissions spike/build/outputs/apk/release/spike-release.apk | tee perms.txt
-          if grep -qE 'android.permission.(INTERNET|ACCESS_NETWORK_STATE)' perms.txt; then
-            echo "::error::network permission in APK"; exit 1
+          if grep -rnE 'java\.net\.|HttpURLConnection|okhttp|java\.nio\.channels|Socket\b|WebView|DownloadManager' \
+               core/src spike/src --include='*.kt' --include='*.java' | grep -v 'spike/src/main/kotlin/chatdigest/spike/ModelDownloader.kt'; then
+            echo "::error::network API used outside ModelDownloader.kt"; exit 1
           fi
 
       - uses: actions/upload-artifact@v4

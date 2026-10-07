@@ -1,6 +1,6 @@
 # Tier 0 — feasibility spike
 
-Throwaway app (`spike/`, label **Digest Spike**) plus the parts that survive into Tier 1 (`core/`: time lexicon, export parser, capture diff, prompt contract). No `INTERNET` or network-state permission; CI fails the build if one appears.
+Throwaway app (`spike/`, label **Digest Spike**) plus the parts that survive into Tier 1 (`core/`: time lexicon, export parser, capture diff, prompt contract). `INTERNET` is used only by `ModelDownloader.kt` for the model download; CI fails the build if network code appears in any other file.
 
 ## Getting the APK
 Every push runs `.github/workflows/build.yml`: unit tests → signed release APK → artifact `digest-spike-<run>`. Download it from the Actions run and sideload it on both phones.
@@ -16,7 +16,7 @@ The go/no-go covers the **OnePlus 13 only**. The Oppo Find X10 Pro Max (Dimensit
 4. At 24 h: **2. Battery exemption** on, and on OxygenOS/ColorOS also allow auto-launch and background activity. Run another 24 h.
 5. **Save capture log…** and **4. Capture stats.**
 6. Export 3–5 active chats (WhatsApp → chat → ⋮ → More → Export chat → **Without media**) → **5. Diff export(s) vs capture.**
-7. **6a / 6b** open the model download in the browser (Hugging Face `litert-community`, Apache-2.0, no login). When it finishes → **6. Import model**, then delete the copy in Downloads. Then **7. Summarize** your 6 golden-set exports, on GPU and then on CPU.
+7. **6a / 6b** download Gemma 4 E2B / E4B inside the app (Hugging Face `litert-community`, Apache-2.0, checksum-verified, resumable). Keep the app open; the screen stays on. Then **7. Summarize** your 6 golden-set exports, on GPU and then on CPU.
 8. **8. Lexicon report** on the same 6 exports.
 9. **Save report…** and send me `report.txt`, plus your hand scores. Do not commit it.
 

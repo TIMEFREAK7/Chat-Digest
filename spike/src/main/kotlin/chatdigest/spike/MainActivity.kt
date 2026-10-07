@@ -30,6 +30,7 @@ class MainActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
     private lateinit var out: TextView
     private lateinit var scroll: ScrollView
+    private lateinit var dl: TextView
     private lateinit var names: EditText
     private lateinit var modelBtn: Button
     private lateinit var backendBtn: Button
@@ -38,7 +39,7 @@ class MainActivity : Activity() {
 
     private val zone get() = ZoneId.systemDefault()
     private val modelsDir get() = File(filesDir, "models").apply { mkdirs() }
-    private val models get() = modelsDir.listFiles().orEmpty().sortedBy { it.name }
+    private val models get() = modelsDir.listFiles().orEmpty().filter { it.extension == "litertlm" }.sortedBy { it.name }
     private val reportFile get() = File(filesDir, "report.txt")
     private val prefs get() = getSharedPreferences("spike", MODE_PRIVATE)
 
@@ -65,10 +66,11 @@ class MainActivity : Activity() {
         button("3. Status") { status() }
         button("4. Capture stats") { bg { CaptureDiff.stats(CaptureLog.read(this), zone) } }
         button("5. Diff export(s) vs capture…") { pick(REQ_DIFF) }
-        // The app has no INTERNET permission, so the browser does the download; button 6 imports it.
-        button("6a. Download Gemma 4 E2B (2.6 GB) in browser") { browse(MODEL_URL.format("E2B")) }
-        button("6b. Download Gemma 4 E4B (3.7 GB) in browser") { browse(MODEL_URL.format("E4B")) }
-        button("6. Import model file…") { pick(REQ_MODEL, multiple = false) }
+        ModelDownloader.MODELS.forEachIndexed { i, m ->
+            button("6${'a' + i}. Download Gemma 4 ${m.name} (${m.bytes / 100_000_000 / 10.0} GB)") { download(m) }
+        }
+        dl = TextView(this).also(col::addView)
+        button("6. Import model file manually…") { pick(REQ_MODEL, multiple = false) }
         modelBtn = button("") { modelIdx++; refreshButtons() }
         backendBtn = button("") { gpu = !gpu; refreshButtons() }
         button("7. Summarize export(s) with selected model…") { pick(REQ_EVAL) }
@@ -115,7 +117,32 @@ class MainActivity : Activity() {
         },
     )
 
-    private fun browse(url: String) = startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    private var meteredOk = false
+
+    /** Wi-Fi by default; on mobile data the first tap only warns. Screen stays on while downloading. */
+    private fun download(m: ModelDownloader.Model) {
+        if (getSystemService(android.net.ConnectivityManager::class.java).isActiveNetworkMetered && !meteredOk) {
+            meteredOk = true
+            dl.text = "You're on mobile data and ${m.name} is ${m.bytes / 1_000_000} MB. Tap again to download anyway."
+            return
+        }
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        dl.text = "Starting ${m.name}…"
+        bg {
+            try {
+                val f = ModelDownloader.download(m, modelsDir) { done, total ->
+                    runOnUiThread { dl.text = "${m.name}: ${done / 1_000_000} / ${total / 1_000_000} MB" + if (done == total) " — verifying checksum…" else "" }
+                }
+                runOnUiThread { dl.text = "${m.name} ready (checksum verified)"; refreshButtons() }
+                "downloaded ${f.name}: ${f.length() / 1_000_000} MB, SHA-256 verified"
+            } catch (e: Exception) {
+                runOnUiThread { dl.text = "${m.name} stopped: ${e.message}. Tap again to resume." }
+                throw e
+            } finally {
+                runOnUiThread { window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+            }
+        }
+    }
 
     // --- file plumbing ---
 
@@ -228,7 +255,6 @@ class MainActivity : Activity() {
     }
 
     companion object {
-        const val MODEL_URL = "https://huggingface.co/litert-community/gemma-4-%1\$s-it-litert-lm/resolve/main/gemma-4-%1\$s-it.litertlm?download=true"
         const val WINDOW = 50 // matches the Tier 0 "50-message summary" benchmark
         const val REQ_DIFF = 1
         const val REQ_MODEL = 2
