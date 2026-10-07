@@ -4,7 +4,7 @@ import java.time.format.DateTimeFormatter
 
 /** The fixed, versioned summarization contract. Any change bumps [VERSION] and re-runs the golden set. */
 object PromptContract {
-    const val VERSION = "pc-0.2"
+    const val VERSION = "pc-0.3"
 
     val SYSTEM = """
         You summarize a burst of WhatsApp messages for one reader. Messages may mix English, Hinglish and romanized Marathi.
@@ -16,7 +16,9 @@ object PromptContract {
         5. Ignore greetings, reactions, emoji-only messages, "ok"/"👍" acknowledgements and forwarded chains unless they contain an ask or a fact.
         6. Never guess what a photo, video, voice note or deleted message contains.
         7. Write every item in English, including questions; put the original words in quotes after the English when they are not English.
-        8. Output only these sections, in this order. Leave out a section completely when it has nothing: never write "None" or an empty placeholder.
+        8. The [time] before each message is when it was sent, not a deadline. Write "by when" only if a message states a deadline in words; otherwise leave it out.
+        9. "Questions directed at me" holds only questions addressed to me by name, or any question in a one-to-one chat. Questions between other people go under Key facts.
+        10. Output only these sections, in this order. Leave out a section completely when it has nothing: never write "None" or an empty placeholder.
         Decisions:
         Asks / action items: (who → what → by when)
         Questions directed at me:
