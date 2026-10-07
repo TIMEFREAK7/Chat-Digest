@@ -18,7 +18,7 @@ object ModelDownloader {
     }
 
     val MODELS = listOf(
-        Model("E2B", "gemma-4-E2B-it.litertlm", 2_588_147_712, "181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c"),
+        // E2B dropped 8 Oct 2026: it mistranslated romanized Marathi; E4B only.
         Model("E4B", "gemma-4-E4B-it.litertlm", 3_659_530_240, "0b2a8980ce155fd97673d8e820b4d29d9c7d99b8fa6806f425d969b145bd52e0"),
     )
 

@@ -18,6 +18,7 @@ import chatdigest.core.ExportMessage
 import chatdigest.core.ExportParser
 import chatdigest.core.PromptContract
 import chatdigest.core.TimeLexicon
+import chatdigest.core.Verifier
 import java.io.File
 import java.time.DateTimeException
 import java.time.LocalDateTime
@@ -71,6 +72,12 @@ class MainActivity : Activity() {
         }
         dl = TextView(this).also(col::addView)
         button("6. Import model file manually…") { pick(REQ_MODEL, multiple = false) }
+        button("Delete models except the selected one") {
+            val keep = models.getOrNull(modelIdx % models.size.coerceAtLeast(1))
+            val gone = models.filter { it != keep }.onEach { it.delete() }
+            modelIdx = 0; refreshButtons()
+            print("deleted ${gone.joinToString { it.name }.ifEmpty { "nothing" }}; kept ${keep?.name}")
+        }
         modelBtn = button("") { modelIdx++; refreshButtons() }
         backendBtn = button("") { gpu = !gpu; refreshButtons() }
         button("7. Summarize export(s) with selected model…") { pick(REQ_EVAL) }
@@ -227,8 +234,10 @@ class MainActivity : Activity() {
         val isGroup = msgs.map { it.sender }.distinct().size > 2
         return try {
             Llm(this, m, gpu).use { llm ->
+                val prompt = PromptContract.userPrompt(chat, isGroup, window, readerNames)
+                val out = llm.summarize(PromptContract.SYSTEM, prompt)
                 "== Summary: $chat | ${m.name} | ${PromptContract.VERSION} | ${window.size} msgs ${window.firstOrNull()?.time} → ${window.lastOrNull()?.time} ==\n" +
-                    llm.summarize(PromptContract.SYSTEM, PromptContract.userPrompt(chat, isGroup, window, readerNames))
+                    out + "--- verification ---\n" + Verifier.verify(out.substringAfter("--- summary ---\n"), prompt.lines()) + "\n"
             }
         } catch (t: Throwable) {
             "== Summary: $chat | ${m.name} | ${if (gpu) "GPU" else "CPU"} FAILED: $t"
