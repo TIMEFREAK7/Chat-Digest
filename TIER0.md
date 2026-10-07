@@ -31,7 +31,7 @@ Signing needs four repo secrets: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_AL
 | Seen live | You had the chat open, so WhatsApp posted no notification. This is not a real miss: you already read it. |
 
 **Tier 0: measure it against ground truth.** WhatsApp's own export is the reference. `CaptureDiff` matches each export message from someone else against the capture log by normalized text and a time window of −1 to +2 minutes. Media is matched by its placeholder. Every unmatched message is given one of the causes above, using the log:
-- **Listener down:** the message falls inside a disconnect→connect span, or a stretch of 20+ minutes with no log events at all (heartbeats run every 15 minutes).
+- **Listener down:** the message falls inside a disconnect→connect span, or a stretch of 45+ minutes with no log events at all (heartbeats run every 15 minutes; Doze stretches them to ~30 overnight).
 - **Seen live:** the chat's notification was removed within the previous 30 minutes and nothing was posted for it since.
 - **Overflow:** WhatsApp posted for that chat within 5 minutes of the message, but the message wasn't in the window.
 - **Truncated:** a captured text is a prefix of the exported text.

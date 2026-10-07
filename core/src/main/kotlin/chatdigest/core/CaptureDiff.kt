@@ -72,7 +72,8 @@ data class DiffReport(
 object CaptureDiff {
     private const val MATCH_BEFORE_MS = 60_000L   // export times are truncated to the minute
     private const val MATCH_AFTER_MS = 120_000L
-    private const val GAP_MS = 20 * 60_000L        // heartbeat runs every 15 min
+    // Heartbeat is 15 min, but Doze stretches it to ~30 min overnight (measured on OnePlus 13).
+    private const val GAP_MS = 45 * 60_000L
     private const val SEEN_LIVE_MS = 30 * 60_000L
     private const val OVERFLOW_MS = 5 * 60_000L
     private val MEDIA = listOf("📷", "🎥", "🎤", "🎵", "📄", "👤", "📍", "Photo", "Video", "Voice message", "Sticker", "GIF", "Document", "Audio", "Contact", "Location")
